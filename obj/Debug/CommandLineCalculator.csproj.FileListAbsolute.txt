@@ -1,0 +1,10 @@
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\CommandLineCalculator.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\CommandLineCalculator.pdb
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\FluentAssertions.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\nunit.framework.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\FluentAssertions.xml
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\nunit.framework.xml
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.csprojAssemblyReference.cache
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.csproj.CopyComplete
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.pdb
