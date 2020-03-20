@@ -244,10 +244,45 @@ namespace CommandLineCalculator.Tests
                     (Read, "2"),
                     (Write, "420"),
                     (Write, "7058940"),
+
+                    (Read, "rfef"),
+                    (Write, "Такой команды нет, используйте help для списка команд"),
+
+                    (Read, "add"),
+                    (Read, "2"),
+                    (Read, "3"),
+                    (Write, "5"),
+
+                    (Read, "median"),
+                    (Read, "3"),
+                    (Read, "60"),
+                    (Read, "50"),
+                    (Read, "41"),
+                    (Write, "50"),
+
+                    (Read, "help"),
+                    (Write, "Укажите команду, для которой хотите посмотреть помощь"),
+                    (Write, "Доступные команды: add, median, rand"),
+                    (Write, "Чтобы выйти из режима помощи введите end"),
+                    (Read, "add"),
+                    (Write, "Вычисляет сумму двух чисел"),
+                    (Write, "Чтобы выйти из режима помощи введите end"),
+                    (Read, "end"),
+
+                    (Read, "rfef"),
+                    (Write, "Такой команды нет, используйте help для списка команд"),
+
+                    (Read, "rand"),
+                    (Read, "2"),
+                    (Write, "528003995"),
+                    (Write, "760714561"),
+
+                    
+
                     (Read, "exit")
                 ),
-                new[] {1}
-            ).SetName("double rand")
+                new[] {1,6,9,14,21,30,33}
+            ).SetName("rand, all commands, rand")
         };
 
         [Test]

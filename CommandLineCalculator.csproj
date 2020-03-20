@@ -6,7 +6,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{B7F1A1FD-38DA-4EC3-B3D8-C6C21386EB30}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CommandLineCalculator</RootNamespace>
     <AssemblyName>CommandLineCalculator</AssemblyName>
@@ -36,6 +36,9 @@
     <WarningLevel>4</WarningLevel>
     <LangVersion>8</LangVersion>
     <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="FileStorage.cs" />

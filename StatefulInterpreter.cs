@@ -14,6 +14,8 @@ namespace CommandLineCalculator
         public override void Run(UserConsole userConsole, Storage storage)
         {
             var x = 420L;
+            var bufferStream = new MemoryStream();
+            var serializer = new BinaryFormatter();
             var storageData = storage.Read();
             if (storageData.Length != 0)
             {
@@ -22,10 +24,11 @@ namespace CommandLineCalculator
                 savedCommand.Storage = storage;
                 savedCommand.UserConsole = userConsole;
                 savedCommand.Culture = Culture;
+                savedCommand._bufferStream = bufferStream;
+                savedCommand._binaryFormatter = serializer;
                 savedCommand.Run();
 
                 x = savedCommand.X;
-
             }
 
             while (true)
@@ -37,24 +40,24 @@ namespace CommandLineCalculator
                         storage.Write(Array.Empty<byte>());
                         return;
                     case "add":
-                        var addCommand = new AddCommand(x, userConsole, Culture, storage);
+                        var addCommand = new AddCommand(x, userConsole, Culture, storage, bufferStream, serializer);
                         addCommand.Run();
                         break;
                     case "median":
-                        var medianCommand = new MedianCommand(x, userConsole, Culture, storage);
+                        var medianCommand = new MedianCommand(x, userConsole, Culture, storage, bufferStream, serializer);
                         medianCommand.Run();
                         break;
                     case "help":
-                        var helpCommand = new HelpCommand(x, userConsole, Culture, storage);
+                        var helpCommand = new HelpCommand(x, userConsole, Culture, storage, bufferStream, serializer);
                         helpCommand.Run();
                         break;
                     case "rand":
-                        var randCommand = new RandCommand(x, userConsole, Culture, storage);
+                        var randCommand = new RandCommand(x, userConsole, Culture, storage, bufferStream, serializer);
                         randCommand.Run();
                         x = randCommand.X;
                         break;
                     default:
-                        var notFoundCommand = new NotFoundCommand(x, userConsole, Culture, storage);
+                        var notFoundCommand = new NotFoundCommand(x, userConsole, Culture, storage, bufferStream, serializer);
                         notFoundCommand.Run();
                         break;
                 }
@@ -72,20 +75,19 @@ namespace CommandLineCalculator
         [NonSerialized]
         public CultureInfo Culture;
 
-        protected int _position;
-
-        public abstract bool IsDone { get; }
-
         public long X { get; protected set; }
 
-        [NonSerialized]
-        private MemoryStream _bufferStream = new MemoryStream();
-        [NonSerialized]
-        private BinaryFormatter _binaryFormatter = new BinaryFormatter();
+        [NonSerialized] 
+        public MemoryStream _bufferStream;
+        [NonSerialized] 
+        public BinaryFormatter _binaryFormatter;
 
 
-        protected CommandModel(long x, Storage storage, UserConsole userConsole, CultureInfo culture)
+        protected CommandModel(long x, Storage storage, UserConsole userConsole, CultureInfo culture, MemoryStream bufferStream,
+            BinaryFormatter formatter)
         {
+            _bufferStream = bufferStream;
+            _binaryFormatter = formatter;
             Storage = storage;
             UserConsole = userConsole;
             Culture = culture;
@@ -93,8 +95,6 @@ namespace CommandLineCalculator
         }
         public void SerializeAndWriteToStorage()
         {
-            if (_bufferStream==null) _bufferStream = new MemoryStream();
-            if (_binaryFormatter==null) _binaryFormatter = new BinaryFormatter();
             _binaryFormatter.Serialize(_bufferStream, this);
             Storage.Write(_bufferStream.ToArray());
             _bufferStream.Position = 0;
@@ -116,29 +116,36 @@ namespace CommandLineCalculator
         private const int a = 16807;
         private const int m = 2147483647;
 
-        private int randAmount;
+        private readonly Queue<Action> _schedule;
 
-        public override bool IsDone => _position > 0 && _position == randAmount + 1;
-
-        public RandCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage)
-            : base(x, storage, userConsole, culture)
+        public RandCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage, MemoryStream bufferStream,
+            BinaryFormatter formatter)
+            : base(x, storage, userConsole, culture, bufferStream, formatter)
         {
+            _schedule = new Queue<Action>();
+            _schedule.Enqueue(Action.Read);
             SerializeAndWriteToStorage();
         }
 
         public override void Run()
         {
-            if (_position == 0)
+            while (_schedule.Count > 0)
             {
-                randAmount = int.Parse(UserConsole.ReadLine(), Culture);
-                _position++;
-                SerializeAndWriteToStorage();
-            }
-            for (var i = _position; i < randAmount+1; i++)
-            {
-                UserConsole.WriteLine(X.ToString(Culture));
-                X = a * X % m;
-                _position++;
+                switch (_schedule.Dequeue())
+                {
+                    case Action.Read:
+                        var amountOfRands = int.Parse(UserConsole.ReadLine(), Culture);
+                        for (var i = 0; i < amountOfRands; i++)
+                        {
+                            _schedule.Enqueue(Action.Write);
+                        }
+
+                        break;
+                    case Action.Write:
+                        UserConsole.WriteLine(X.ToString(Culture));
+                        X = a * X % m;
+                        break;
+                }
                 SerializeAndWriteToStorage();
             }
         }
@@ -148,30 +155,41 @@ namespace CommandLineCalculator
     [Serializable]
     internal sealed class AddCommand : CommandModel
     {
-        private List<int> _variablesToAdd = new List<int>(2);
+        private readonly List<int> _numbers = new List<int>(2);
 
-        public override bool IsDone => _position == 3;
+        private Action _сurrCommand;
 
-        public AddCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage)
-            : base(x, storage, userConsole, culture)
+        private bool _isDone;
+
+
+        public AddCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage,
+            MemoryStream bufferStream,
+            BinaryFormatter formatter)
+            : base(x, storage, userConsole, culture, bufferStream, formatter)
         {
+            _сurrCommand = Action.Read;
             SerializeAndWriteToStorage();
         }
 
         public override void Run()
         {
-            while (!IsDone)
+            while (!_isDone)
             {
-                if (_position <= 1)
+                switch (_сurrCommand)
                 {
-                    _variablesToAdd.Add(int.Parse(UserConsole.ReadLine(), Culture));
+                    case Action.Read:
+                    {
+                        _numbers.Add(int.Parse(UserConsole.ReadLine(), Culture));
+                        _сurrCommand = _numbers.Count == 2 ? Action.Write : Action.Read;
+                        break;
+                    }
+                    case Action.Write:
+                    {
+                        UserConsole.WriteLine(_numbers.Sum().ToString(Culture));
+                        _isDone = true;
+                        break;
+                    }
                 }
-                else
-                {
-                    UserConsole.WriteLine(_variablesToAdd.Sum().ToString(Culture));
-                }
-
-                _position++;
                 SerializeAndWriteToStorage();
             }
         }
@@ -180,44 +198,46 @@ namespace CommandLineCalculator
     [Serializable]
     internal sealed class MedianCommand : CommandModel
     {
-        private int _count;
+        private readonly List<int> _numbers = new List<int>();
 
-        private List<int> _numbers = new List<int>();
+        private readonly Queue<Action> _schedule;
 
-        public override bool IsDone => _position == _schedule.Count;
+        private bool _knowAmountOfNumbers;
 
-        private List<Action> _schedule;
-
-        public MedianCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage)
-            : base(x, storage, userConsole, culture)
+        public MedianCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage, MemoryStream bufferStream,
+            BinaryFormatter formatter)
+            : base(x, storage, userConsole, culture, bufferStream, formatter)
         {
-            _schedule = new List<Action> { Action.Read };
+            _schedule = new Queue<Action>();
+            _schedule.Enqueue(Action.Read);
             SerializeAndWriteToStorage();
         }
 
         public override void Run()
         {
-            for (var i = _position; i < _schedule.Count; i++)
+            while (_schedule.Count>0)
             {
-                switch (_schedule[i])
+                switch (_schedule.Dequeue())
                 {
                     case Action.Read:
-                        if (i == 0)
+                        if (!_knowAmountOfNumbers)
                         {
-                            _count = int.Parse(UserConsole.ReadLine(), Culture);
-                            _schedule.AddRange(Enumerable.Repeat(Action.Read, _count));
-                            _schedule.Add(Action.Write);
+                            var count = int.Parse(UserConsole.ReadLine(), Culture);
+                            for (var i = 0; i < count; i++)
+                            {
+                                _schedule.Enqueue(Action.Read);
+                            }
+                            _schedule.Enqueue(Action.Write);
+                            _knowAmountOfNumbers = true;
                         }
                         else
                         {
                             _numbers.Add(int.Parse(UserConsole.ReadLine(), Culture));
                         }
-                        _position++;
                         SerializeAndWriteToStorage();
                         break;
                     case Action.Write:
                         UserConsole.WriteLine(CalculateMedian(_numbers).ToString(Culture));
-                        _position++;
                         SerializeAndWriteToStorage();
                         break;
                 }
@@ -247,73 +267,65 @@ namespace CommandLineCalculator
         private const string exitMessage = "Чтобы выйти из режима помощи введите end";
         private const string commands = "Доступные команды: add, median, rand";
 
-        private string _inputCommandNameForHelp;
+        private readonly Queue<(Action action, string value)> _helpSchedule;
 
-        private List<(Action action, string value)> _helpSchedule;
-
-        public override bool IsDone => _position == _helpSchedule.Count;
-
-        public HelpCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage)
-            : base(x, storage, userConsole, culture)
+        public HelpCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage, MemoryStream bufferStream,
+            BinaryFormatter formatter)
+            : base(x, storage, userConsole, culture, bufferStream, formatter)
         {
-            _helpSchedule = new List<(Action action, string value)>
-            {
-                (Action.Write, "Укажите команду, для которой хотите посмотреть помощь"),
-                (Action.Write, commands),
-                (Action.Write, exitMessage)
-            };
+            _helpSchedule = new Queue<(Action action, string value)>();
+            _helpSchedule.Enqueue((Action.Write, "Укажите команду, для которой хотите посмотреть помощь"));
+            _helpSchedule.Enqueue((Action.Write, commands));
+            _helpSchedule.Enqueue((Action.Write, exitMessage));
 
             SerializeAndWriteToStorage();
         }
 
         public override void Run()
         {
-            for (var i = _position; i < _helpSchedule.Count; i++)
+            while (_helpSchedule.Count>0)
             {
-                switch (_helpSchedule[i].action)
+                var (action, value) = _helpSchedule.Dequeue();
+                switch (action)
                 {
                     case Action.Write:
-                        UserConsole.WriteLine(_helpSchedule[i].value);
-                        if (_helpSchedule[i].value == exitMessage)
+                        UserConsole.WriteLine(value);
+                        if (value == exitMessage)
                         {
-                            _helpSchedule.Add((Action.Read, ""));
+                            _helpSchedule.Enqueue((Action.Read, ""));
                         }
-                        _position++;
                         SerializeAndWriteToStorage();
                         break;
 
                     case Action.Read:
-                        _inputCommandNameForHelp = UserConsole.ReadLine();
+                        var inputCommandNameForHelp = UserConsole.ReadLine();
 
-                        switch (_inputCommandNameForHelp)
+                        switch (inputCommandNameForHelp.Trim())
                         {
                             case "end":
                                 break;
                             case "add":
-                                _helpSchedule.Add((Action.Write, "Вычисляет сумму двух чисел"));
-                                _helpSchedule.Add((Action.Write, exitMessage));
+                                _helpSchedule.Enqueue((Action.Write, "Вычисляет сумму двух чисел"));
+                                _helpSchedule.Enqueue((Action.Write, exitMessage));
                                 break;
                             case "median":
-                                _helpSchedule.Add((Action.Write, "Вычисляет медиану списка чисел"));
-                                _helpSchedule.Add((Action.Write, exitMessage));
+                                _helpSchedule.Enqueue((Action.Write, "Вычисляет медиану списка чисел"));
+                                _helpSchedule.Enqueue((Action.Write, exitMessage));
                                 break;
                             case "rand":
-                                _helpSchedule.Add((Action.Write, "Генерирует список случайных чисел"));
-                                _helpSchedule.Add((Action.Write, exitMessage));
+                                _helpSchedule.Enqueue((Action.Write, "Генерирует список случайных чисел"));
+                                _helpSchedule.Enqueue((Action.Write, exitMessage));
                                 break;
                             default:
-                                _helpSchedule.Add((Action.Write, "Такой команды нет"));
-                                _helpSchedule.Add((Action.Write, commands));
-                                _helpSchedule.Add((Action.Write, exitMessage));
+                                _helpSchedule.Enqueue((Action.Write, "Такой команды нет"));
+                                _helpSchedule.Enqueue((Action.Write, commands));
+                                _helpSchedule.Enqueue((Action.Write, exitMessage));
                                 break;
                         }
 
-                        _position++;
                         SerializeAndWriteToStorage();
                         break;
                 }
-
-
             }
         }
     }
@@ -323,20 +335,21 @@ namespace CommandLineCalculator
     {
         private const string message = "Такой команды нет, используйте help для списка команд";
 
-        public NotFoundCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage)
-            : base(x, storage, userConsole, culture)
+        public NotFoundCommand(long x, UserConsole userConsole, CultureInfo culture, Storage storage, MemoryStream bufferStream, 
+            BinaryFormatter formatter)
+            : base(x, storage, userConsole, culture, bufferStream, formatter)
         {
             SerializeAndWriteToStorage();
         }
 
-        public override bool IsDone => _position == 1;
+        private bool _isDone;
 
         public override void Run()
         {
-            if (_position == 0)
+            if (!_isDone)
             {
                 UserConsole.WriteLine(message);
-                _position++;
+                _isDone = true;
                 SerializeAndWriteToStorage();
             }
         }
