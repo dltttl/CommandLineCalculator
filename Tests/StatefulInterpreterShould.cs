@@ -236,7 +236,7 @@ namespace CommandLineCalculator.Tests
                         (Read, "exit")
 
                     ),
-                    new[] {3,9,10,11})
+                    new[] {3,9,11})
                 .SetName("help for add and then add"),
             new TestCaseData(
                 new TestConsole(

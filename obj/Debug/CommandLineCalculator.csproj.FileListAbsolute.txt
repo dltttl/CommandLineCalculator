@@ -8,3 +8,7 @@ C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\Command
 C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.csproj.CopyComplete
 C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.dll
 C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\obj\Debug\CommandLineCalculator.pdb
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\NUnit3.TestAdapter.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\NUnit3.TestAdapter.pdb
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\nunit.engine.dll
+C:\Users\SucessfullUser\Downloads\CommandLineCalculator.csproj\bin\Debug\nunit.engine.api.dll
